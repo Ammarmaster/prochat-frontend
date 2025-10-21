@@ -24,7 +24,7 @@ const Signup = () => {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:3000/api/auth/user/register', {
+      const res = await fetch('https://prochat-api.onrender.com/api/auth/user/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
