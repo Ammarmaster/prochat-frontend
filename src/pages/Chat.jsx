@@ -40,8 +40,8 @@ const ProChat = () => {
   );
 
   const getDisplayName = (user) => {
-    if (!user?.name) return null;
-    const verified = user.name.trim().toLowerCase() === "prodevopz";
+    if (!user?.name) return "Unknown User";
+    const verified = user.name?.trim().toLowerCase() === "prodevopz";
     return (
       <span className="flex items-center">
         {user.name}
@@ -195,198 +195,215 @@ const ProChat = () => {
     navigate("/login");
   };
 
-  const getAvatar = (user) =>
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+  const getAvatar = (user) => {
+    if (!user?.name) return null;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
       user.name
-    )}&background=000000&color=E9EDEF`;
+    )}&background=008069&color=ffffff&bold=true`;
+  };
 
   return (
-    <div className="flex flex-col h-screen bg-[#0a0a0a] text-[#E9EDEF] font-sans overflow-hidden">
-      {/* Header */}
-      <div className="bg-[#1a1a1a] px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center border-b border-[#222]">
-        {currentView === "chat" ? (
-          <button
-            onClick={() => {
-              setCurrentView("chats");
-              setSelectedUser(null);
-            }}
-            className="text-[#aaa] hover:text-white text-sm sm:text-base"
-          >
-            ← Back
-          </button>
-        ) : (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
-            {/* ✅ Branding */}
-            <div className="flex items-center space-x-2 mb-2 sm:mb-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-[#00A884]">
-                ProChat
-              </h1>
-              <a
-                href="https://instagram.com/prodevopz"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center text-[#E9EDEF] text-sm sm:text-base hover:text-[#00A884] transition"
-              >
-                @prodevopz
-                <VerifiedBadge size={14} />
-              </a>
-            </div>
-
-            {/* ✅ Current user */}
+    <div className="flex h-screen bg-[#111b21] text-white font-sans overflow-hidden">
+      {/* Sidebar - Chats List */}
+      <div className={`${currentView === "chat" ? "hidden md:flex" : "flex"} flex-col w-full md:w-1/3 lg:w-1/4 bg-[#202c33] border-r border-[#303d45]`}>
+        {/* Sidebar Header */}
+        <div className="bg-[#202c33] p-4 flex items-center justify-between border-b border-[#303d45]">
+          <div className="flex items-center space-x-4">
             {currentUser && (
-              <div className="flex items-center space-x-2 sm:space-x-3">
-                <img
-                  src={getAvatar(currentUser)}
-                  alt={currentUser.name}
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
-                />
-                <h1 className="text-base sm:text-lg font-semibold truncate max-w-[120px] sm:max-w-none">
-                  {getDisplayName(currentUser)}
-                </h1>
-              </div>
+              <img
+                src={getAvatar(currentUser)}
+                alt="Profile"
+                className="w-10 h-10 rounded-full cursor-pointer"
+              />
             )}
+            <div className="flex-1">
+              <h2 className="font-semibold text-white">{currentUser?.name || "User"}</h2>
+              <p className="text-xs text-[#8696a0]">Online</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <button className="text-[#aebac1] hover:text-white transition">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                <path d="M12 20.664a9.163 9.163 0 0 1-6.521-2.702.977.977 0 0 1 1.381-1.381 7.269 7.269 0 0 0 10.024.244.977.977 0 0 1 1.313 1.445A9.192 9.192 0 0 1 12 20.664zm7.965-6.112a.977.977 0 0 1-.944-1.229 7.26 7.26 0 0 0-4.8-8.804.977.977 0 0 1 .594-1.86 9.212 9.212 0 0 1 6.092 11.169.976.976 0 0 1-.942.724z"/>
+              </svg>
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="text-[#aebac1] hover:text-white transition"
+            >
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="p-3 bg-[#202c33]">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="w-4 h-4 text-[#8696a0]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              </svg>
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search or start new chat"
+              className="w-full bg-[#2a3942] text-white placeholder-[#8696a0] rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#00a884]"
+            />
+          </div>
+        </div>
+
+        {/* Search Results */}
+        {searchQuery && searchResults.length > 0 && (
+          <div className="flex-1 overflow-y-auto bg-[#111b21]">
+            <div className="p-2">
+              <h3 className="text-xs font-semibold text-[#8696a0] uppercase px-3 py-2">Search Results</h3>
+              {searchResults.map((user) => (
+                <div
+                  key={user._id}
+                  className="flex items-center justify-between p-3 hover:bg-[#2a3942] cursor-pointer transition rounded-lg"
+                >
+                  <div className="flex items-center space-x-3">
+                    <img
+                      src={getAvatar(user)}
+                      alt={user.name}
+                      className="w-12 h-12 rounded-full"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-white truncate">
+                        {getDisplayName(user)}
+                      </p>
+                      <p className="text-sm text-[#8696a0] truncate">
+                        ID: {user.userId}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => addFriend(user)}
+                    className="bg-[#00a884] hover:bg-[#00b894] text-white px-4 py-2 rounded-full text-sm font-medium transition"
+                  >
+                    Add
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        <button
-          onClick={handleLogout}
-          className="text-xs sm:text-sm bg-[#222] hover:bg-[#333] px-2 sm:px-3 py-1 rounded-lg"
-        >
-          Logout
-        </button>
-      </div>
-
-      {/* Status messages */}
-      {message && (
-        <div className="bg-[#111] text-green-400 px-3 sm:px-4 py-2 text-sm sm:text-base">
-          {message}
-        </div>
-      )}
-      {error && (
-        <div className="bg-[#111] text-red-400 px-3 sm:px-4 py-2 text-sm sm:text-base">
-          {error}
-        </div>
-      )}
-
-      {/* Main View */}
-      <div className="flex-1 overflow-hidden">
-        {/* Friends / Search */}
-        {currentView === "chats" && (
-          <div className="h-full overflow-y-auto">
-            <div className="p-3 sm:p-4 bg-[#111] sticky top-0 z-10 border-b border-[#222]">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search or start new chat"
-                className="w-full bg-[#1c1c1c] rounded-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-[#E9EDEF] placeholder-[#777] focus:outline-none"
-              />
-            </div>
-
-            {/* Search Results */}
-            {searchQuery && searchResults.length > 0 && (
-              <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
-                {searchResults.map((user) => (
-                  <div
-                    key={user._id}
-                    className="flex items-center justify-between bg-[#1a1a1a] hover:bg-[#222] p-3 sm:p-4 rounded-xl cursor-pointer transition"
-                  >
-                    <div className="flex items-center space-x-2 sm:space-x-3">
-                      <img
-                        src={getAvatar(user)}
-                        alt={user.name}
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full"
-                      />
-                      <div>
-                        <p className="font-semibold text-sm sm:text-base">
-                          {getDisplayName(user)}
-                        </p>
-                        <p className="text-xs sm:text-sm text-[#777]">
-                          ID: {user.userId}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => addFriend(user)}
-                      className="text-xs sm:text-sm bg-[#333] hover:bg-[#444] px-2 sm:px-3 py-1 rounded-full"
-                    >
-                      Add
-                    </button>
+        {/* Chats List */}
+        <div className="flex-1 overflow-y-auto bg-[#111b21]">
+          {friends.map((user) => {
+            const msgs = chats[user._id] || [];
+            const lastMsg = msgs[msgs.length - 1];
+            const unread = unreadCounts[user._id] || 0;
+            
+            return (
+              <div
+                key={user._id}
+                onClick={() => startChat(user)}
+                className="flex items-center p-3 hover:bg-[#2a3942] cursor-pointer border-b border-[#222d34] transition"
+              >
+                <div className="relative">
+                  <img
+                    src={getAvatar(user)}
+                    alt={user.name}
+                    className="w-12 h-12 rounded-full"
+                  />
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#00a884] rounded-full border-2 border-[#111b21]"></div>
+                </div>
+                <div className="flex-1 ml-3 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium text-white truncate">
+                      {getDisplayName(user)}
+                    </h3>
+                    {lastMsg && (
+                      <span className="text-xs text-[#8696a0]">
+                        {lastMsg.time}
+                      </span>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* Friends List */}
-            <div className="divide-y divide-[#111]">
-              {friends.map((user) => {
-                const msgs = chats[user._id] || [];
-                const last = msgs[msgs.length - 1];
-                const unread = unreadCounts[user._id] || 0;
-                return (
-                  <div
-                    key={user._id}
-                    onClick={() => startChat(user)}
-                    className="flex items-center justify-between p-3 sm:p-4 hover:bg-[#1a1a1a] cursor-pointer transition"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <img
-                        src={getAvatar(user)}
-                        alt={user.name}
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full"
-                      />
-                      <div className="flex flex-col">
-                        <h3 className="font-semibold text-sm sm:text-base">
-                          {getDisplayName(user)}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-[#777] truncate max-w-[140px] sm:max-w-[200px]">
-                          {last ? last.text : "Tap to chat"}
-                        </p>
-                      </div>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-[#8696a0] truncate max-w-[140px]">
+                      {lastMsg ? lastMsg.text : "Tap to start chatting"}
+                    </p>
                     {unread > 0 && (
-                      <span className="bg-[#00A884] text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                      <span className="bg-[#00a884] text-white text-xs font-semibold px-2 py-1 rounded-full min-w-[20px] text-center">
                         {unread}
                       </span>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-        {/* Chat View */}
-        {currentView === "chat" && selectedUser && (
-          <div className="flex flex-col h-full">
-            <div className="bg-[#1a1a1a] p-3 sm:p-4 flex items-center border-b border-[#222] space-x-3">
-              <img
-                src={getAvatar(selectedUser)}
-                alt={selectedUser.name}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
-              />
-              <h2 className="text-base sm:text-lg font-semibold">
-                {getDisplayName(selectedUser)}
-              </h2>
+      {/* Main Chat Area */}
+      <div className={`${currentView === "chats" ? "hidden md:flex" : "flex"} flex-1 flex-col bg-[#0b141a]`}>
+        {selectedUser ? (
+          <>
+            {/* Chat Header */}
+            <div className="bg-[#202c33] px-4 py-3 flex items-center justify-between border-b border-[#303d45]">
+              <div className="flex items-center space-x-4">
+                {currentView === "chat" && (
+                  <button
+                    onClick={() => {
+                      setCurrentView("chats");
+                      setSelectedUser(null);
+                    }}
+                    className="md:hidden text-[#8696a0] hover:text-white"
+                  >
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                      <path d="M19 11H7.83l4.88-4.88c.39-.39.39-1.03 0-1.42-.39-.39-1.02-.39-1.41 0l-6.59 6.59c-.39.39-.39 1.02 0 1.41l6.59 6.59c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L7.83 13H19c.55 0 1-.45 1-1s-.45-1-1-1z"/>
+                    </svg>
+                  </button>
+                )}
+                <img
+                  src={getAvatar(selectedUser)}
+                  alt={selectedUser.name}
+                  className="w-10 h-10 rounded-full"
+                />
+                <div>
+                  <h2 className="font-semibold text-white">
+                    {getDisplayName(selectedUser)}
+                  </h2>
+                  <p className="text-xs text-[#8696a0]">Online</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-6 text-[#8696a0]">
+                <button className="hover:text-white transition">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                  </svg>
+                </button>
+                <button className="hover:text-white transition">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 11c-.55 0-1-.45-1-1V8c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1 4h-2v-2h2v2z"/>
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-[#0a0a0a]">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto bg-[#0b141a] p-4 space-y-2">
               {(chats[selectedUser._id] || []).map((m) => (
                 <div
                   key={m.id}
-                  className={`flex ${
-                    m.sender === "me" ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex ${m.sender === "me" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[80%] sm:max-w-[75%] rounded-2xl px-3 sm:px-4 py-2 shadow-md ${
+                    className={`max-w-[70%] rounded-lg px-4 py-2 shadow-lg ${
                       m.sender === "me"
-                        ? "bg-[#222] text-[#E9EDEF]"
-                        : "bg-[#1c1c1c] text-[#E9EDEF]"
+                        ? "bg-[#005c4b] text-white rounded-tr-none"
+                        : "bg-[#202c33] text-white rounded-tl-none"
                     }`}
                   >
-                    <p className="text-sm sm:text-base">{m.text}</p>
-                    <p className="text-[10px] sm:text-xs text-[#777] mt-1">
+                    <p className="text-sm leading-relaxed">{m.text}</p>
+                    <p className={`text-xs mt-1 ${m.sender === "me" ? "text-[#8696a0] text-right" : "text-[#8696a0]"}`}>
                       {m.time}
                     </p>
                   </div>
@@ -395,28 +412,78 @@ const ProChat = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            <form
-              onSubmit={sendMessage}
-              className="bg-[#111] p-3 sm:p-4 flex space-x-2 sm:space-x-3"
-            >
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message"
-                className="flex-1 bg-[#1a1a1a] rounded-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-[#E9EDEF] placeholder-[#777] focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={!newMessage.trim()}
-                className="bg-[#00A884] hover:bg-[#00B98E] text-white text-sm sm:text-base px-4 sm:px-5 py-2 rounded-full disabled:bg-[#333]"
-              >
-                Send
-              </button>
-            </form>
+            {/* Message Input */}
+            <div className="bg-[#202c33] p-3">
+              <form onSubmit={sendMessage} className="flex items-center space-x-3">
+                <button type="button" className="text-[#8696a0] hover:text-white p-2">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M11.999 14.942c2.001 0 3.531-1.53 3.531-3.531V4.35c0-2.001-1.53-3.531-3.531-3.531S8.469 2.35 8.469 4.35v7.061c0 2.001 1.53 3.531 3.53 3.531zm6.238-3.53c0 3.531-2.942 6.002-6.237 6.002s-6.237-2.471-6.237-6.002H3.761c0 4.001 3.178 7.297 7.061 7.885v3.884h2.354v-3.884c3.884-.588 7.061-3.884 7.061-7.885h-2z"/>
+                  </svg>
+                </button>
+                <button type="button" className="text-[#8696a0] hover:text-white p-2">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M11.999 22c5.523 0 10-4.477 10-10s-4.477-10-10-10-10 4.477-10 10 4.477 10 10 10zm0-1.5a8.5 8.5 0 1 1 0-17 8.5 8.5 0 0 1 0 17zm-3.5-7a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm3.5 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm3.5 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                  </svg>
+                </button>
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message"
+                    className="w-full bg-[#2a3942] text-white placeholder-[#8696a0] rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#00a884]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim()}
+                  className="text-[#8696a0] hover:text-[#00a884] disabled:opacity-50 disabled:cursor-not-allowed p-2 transition"
+                >
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </>
+        ) : (
+          /* Welcome Screen */
+          <div className="flex-1 flex flex-col items-center justify-center bg-[#0b141a] text-center p-8">
+            <div className="max-w-md">
+              <div className="w-24 h-24 bg-[#00a884] rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="white">
+                  <path d="M17.5 12.5a5 5 0 1 1-10 0 5 5 0 0 1 10 0z"/>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                </svg>
+              </div>
+              <h1 className="text-2xl font-light text-white mb-4">ProChat</h1>
+              <p className="text-[#8696a0] text-sm leading-relaxed">
+                Send and receive messages without keeping your phone online.
+                <br />
+                Use ProChat on up to 4 linked devices and 1 phone at the same time.
+              </p>
+              <div className="mt-6 flex items-center justify-center space-x-2 text-[#8696a0] text-sm">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                  <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                </svg>
+                <span>Your personal messages are end-to-end encrypted</span>
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Status Messages */}
+      {message && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-[#00a884] text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm text-center">
+          {message}
+        </div>
+      )}
+      {error && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm text-center">
+          {error}
+        </div>
+      )}
     </div>
   );
 };
