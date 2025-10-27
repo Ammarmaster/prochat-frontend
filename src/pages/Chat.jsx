@@ -433,7 +433,7 @@ const ProChat = () => {
                   e.stopPropagation();
                   removeFriend(user);
                 }}
-                className="hidden group-hover:block text-red-400 hover:text-red-500 transition p-1"
+                className=" group-hover:block text-red-400 hover:text-red-500 transition p-1"
                 title="Remove friend"
               >
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">

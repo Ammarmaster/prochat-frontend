@@ -6,17 +6,48 @@ const Nav = () => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    try {
-      const res = await fetch("https://prochat-api.onrender.com/api/auth/user/logout", {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (res.ok) navigate("/login");
-    } catch (err) {
-      console.error(err);
+  try {
+    // Disconnect socket
+    if (socket) {
+      socket.emit('userOffline', currentUser?._id);
+      socket.disconnect();
+      setSocket(null);
     }
-  };
+
+    // Clear all local state immediately
+    setCurrentUser(null);
+    setFriends([]);
+    setSelectedUser(null);
+    setChats({});
+    setCurrentView("chats");
+    setSearchQuery("");
+    setSearchResults([]);
+
+    // Try API logout with timeout
+    const logoutPromise = axios.post(
+      "https://prochat-api.onrender.com/api/auth/user/logout", 
+      {}, 
+      { 
+        withCredentials: true,
+        timeout: 5000 // 5 second timeout
+      }
+    );
+
+    // Wait for logout or timeout after 3 seconds
+    await Promise.race([
+      logoutPromise,
+      new Promise(resolve => setTimeout(resolve, 3000))
+    ]);
+
+    // Navigate to login page
+    navigate("/login", { replace: true });
+
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Still navigate to login even if there's an error
+    navigate("/login", { replace: true });
+  }
+};
 
   return (
     <nav className="bg-[#1c1c1c] text-white shadow-md sticky top-0 z-50">
