@@ -36,7 +36,7 @@ const Signup = () => {
       const data = await res.json();
 
       if (res.ok) {
-        alert('Signup successful');
+        
         navigate('/login');
       } else {
         setError(data.message || 'Signup failed');

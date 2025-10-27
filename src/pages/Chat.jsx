@@ -385,19 +385,19 @@ const ProChat = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search or start new chat"
-            className="w-full bg-[#2a3942] text-white placeholder-[#8696a0] rounded-lg pl-3 pr-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#00a884]"
+            className="w-full bg-[#2a3942] text-white placeholder-[#8696a0] rounded-lg pl-3 pr-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#00a884] mx-2"
           />
         </div>
 
         {/* Search Results */}
         {searchQuery && searchResults.length > 0 && (
-          <div className="overflow-y-auto">
+          <div className="overflow-y-auto px-2">
             {searchResults.map((u) => (
-              <div key={u._id} className="flex items-center justify-between p-3 hover:bg-[#2a3942] rounded-lg">
+              <div key={u._id} className="flex items-center justify-between p-3 hover:bg-[#2a3942] rounded-lg mx-2 mb-1">
                 <div className="flex items-center space-x-3">
                   <img src={getAvatar(u)} alt={u.name} className="w-10 h-10 rounded-full" />
                   <div>
-                    <p>{getDisplayName(u)}</p>
+                    <p className="text-sm">{getDisplayName(u)}</p>
                     <p className="text-xs text-[#8696a0]">ID: {u.userId}</p>
                   </div>
                 </div>
@@ -413,18 +413,18 @@ const ProChat = () => {
         )}
 
         {/* Friends List */}
-        <div className="flex-1 overflow-y-auto bg-[#111b21]">
+        <div className="flex-1 overflow-y-auto bg-[#111b21] px-2">
           {friends.map((user) => (
             <div
               key={user._id}
               onClick={() => startChat(user)}
-              className="group flex items-center justify-between p-3 hover:bg-[#2a3942] cursor-pointer border-b border-[#222d34]"
+              className="group flex items-center justify-between p-3 hover:bg-[#2a3942] cursor-pointer border-b border-[#222d34] rounded-lg mx-1 my-1"
             >
               <div className="flex items-center space-x-3">
                 <img src={getAvatar(user)} alt={user.name} className="w-12 h-12 rounded-full" />
-                <div>
-                  <h3 className="font-medium">{getDisplayName(user)}</h3>
-                  <p className="text-xs text-[#8696a0]">ID: {user.userId}</p>
+                <div className="max-w-[140px] md:max-w-[180px]">
+                  <h3 className="font-medium text-sm truncate">{getDisplayName(user)}</h3>
+                  <p className="text-xs text-[#8696a0] truncate">ID: {user.userId}</p>
                 </div>
               </div>
               {/* 🗑️ Remove Friend Button */}
@@ -433,10 +433,10 @@ const ProChat = () => {
                   e.stopPropagation();
                   removeFriend(user);
                 }}
-                className="hidden group-hover:block text-red-400 hover:text-red-500 transition"
+                className="hidden group-hover:block text-red-400 hover:text-red-500 transition p-1"
                 title="Remove friend"
               >
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                   <path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1z"/>
                 </svg>
               </button>
@@ -450,17 +450,17 @@ const ProChat = () => {
         {selectedUser ? (
           <>
             {/* Chat Header */}
-            <div className="bg-[#202c33] px-4 py-3 flex items-center justify-between border-b border-[#303d45]">
-              <div className="flex items-center space-x-4">
+            <div className="bg-[#202c33] px-4 md:px-6 py-3 flex items-center justify-between border-b border-[#303d45]">
+              <div className="flex items-center space-x-3 md:space-x-4">
                 {currentView === "chat" && (
                   <button
                     onClick={() => {
                       setCurrentView("chats");
                       setSelectedUser(null);
                     }}
-                    className="md:hidden text-[#8696a0] hover:text-white"
+                    className="md:hidden text-[#8696a0] hover:text-white p-1"
                   >
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                       <path d="M19 11H7.83l4.88-4.88c.39-.39.39-1.03 0-1.42-.39-.39-1.02-.39-1.41 0l-6.59 6.59c-.39.39-.39 1.02 0 1.41l6.59 6.59c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L7.83 13H19c.55 0 1-.45 1-1s-.45-1-1-1z"/>
                     </svg>
                   </button>
@@ -468,10 +468,10 @@ const ProChat = () => {
                 <img
                   src={getAvatar(selectedUser)}
                   alt={selectedUser.name}
-                  className="w-10 h-10 rounded-full"
+                  className="w-8 h-8 md:w-10 md:h-10 rounded-full"
                 />
                 <div>
-                  <h2 className="font-semibold text-white">
+                  <h2 className="font-semibold text-white text-sm md:text-base">
                     {getDisplayName(selectedUser)}
                   </h2>
                   <p className="text-xs text-[#8696a0]">
@@ -479,14 +479,14 @@ const ProChat = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-6 text-[#8696a0]">
-                <button className="hover:text-white transition">
-                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <div className="flex items-center space-x-4 md:space-x-6 text-[#8696a0]">
+                <button className="hover:text-white transition p-1">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                     <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
                   </svg>
                 </button>
-                <button className="hover:text-white transition">
-                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                <button className="hover:text-white transition p-1">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 11c-.55 0-1-.45-1-1V8c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1 4h-2v-2h2v2z"/>
                   </svg>
                 </button>
@@ -494,21 +494,21 @@ const ProChat = () => {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto bg-[#0b141a] p-4 space-y-2">
+            <div className="flex-1 overflow-y-auto bg-[#0b141a] p-3 md:p-4 space-y-3">
               {(chats[selectedUser._id] || []).map((m) => (
                 <div
                   key={m.id}
-                  className={`flex ${m.sender === "me" ? "justify-end" : "justify-start"}`}
+                  className={`flex ${m.sender === "me" ? "justify-end" : "justify-start"} px-2 md:px-0`}
                 >
                   <div
-                    className={`max-w-[70%] rounded-lg px-4 py-2 shadow-lg ${
+                    className={`max-w-[85%] md:max-w-[70%] rounded-lg px-3 md:px-4 py-2 md:py-3 shadow-lg ${
                       m.sender === "me"
-                        ? "bg-[#005c4b] text-white rounded-tr-none"
-                        : "bg-[#202c33] text-white rounded-tl-none"
+                        ? "bg-[#005c4b] text-white rounded-tr-none ml-4"
+                        : "bg-[#202c33] text-white rounded-tl-none mr-4"
                     }`}
                   >
-                    <p className="text-sm leading-relaxed">{m.text}</p>
-                    <p className={`text-xs mt-1 ${m.sender === "me" ? "text-[#8696a0] text-right" : "text-[#8696a0]"}`}>
+                    <p className="text-sm md:text-base leading-relaxed break-words">{m.text}</p>
+                    <p className={`text-xs mt-1 md:mt-2 ${m.sender === "me" ? "text-[#8696a0] text-right" : "text-[#8696a0]"}`}>
                       {m.time}
                     </p>
                   </div>
@@ -517,8 +517,8 @@ const ProChat = () => {
               
               {/* Typing Indicator */}
               {isSelectedUserTyping && (
-                <div className="flex justify-start">
-                  <div className="bg-[#202c33] text-white rounded-tl-none rounded-lg px-4 py-3 shadow-lg">
+                <div className="flex justify-start px-2 md:px-0">
+                  <div className="bg-[#202c33] text-white rounded-tl-none rounded-lg px-4 py-3 shadow-lg mr-4">
                     <div className="flex space-x-1 items-center">
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -533,15 +533,15 @@ const ProChat = () => {
             </div>
 
             {/* Message Input */}
-            <div className="bg-[#202c33] p-3">
-              <form onSubmit={sendMessage} className="flex items-center space-x-3">
+            <div className="bg-[#202c33] p-3 md:p-4">
+              <form onSubmit={sendMessage} className="flex items-center space-x-2 md:space-x-3">
                 <button type="button" className="text-[#8696a0] hover:text-white p-2">
-                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                     <path d="M11.999 14.942c2.001 0 3.531-1.53 3.531-3.531V4.35c0-2.001-1.53-3.531-3.531-3.531S8.469 2.35 8.469 4.35v7.061c0 2.001 1.53 3.531 3.53 3.531zm6.238-3.53c0 3.531-2.942 6.002-6.237 6.002s-6.237-2.471-6.237-6.002H3.761c0 4.001 3.178 7.297 7.061 7.885v3.884h2.354v-3.884c3.884-.588 7.061-3.884 7.061-7.885h-2z"/>
                   </svg>
                 </button>
                 <button type="button" className="text-[#8696a0] hover:text-white p-2">
-                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                     <path d="M11.999 22c5.523 0 10-4.477 10-10s-4.477-10-10-10-10 4.477-10 10 4.477 10 10 10zm0-1.5a8.5 8.5 0 1 1 0-17 8.5 8.5 0 0 1 0 17zm-3.5-7a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm3.5 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm3.5 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
                   </svg>
                 </button>
@@ -551,13 +551,13 @@ const ProChat = () => {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type a message"
-                    className="w-full bg-[#2a3942] text-white placeholder-[#8696a0] rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#00a884]"
+                    className="w-full bg-[#2a3942] text-white placeholder-[#8696a0] rounded-lg px-3 md:px-4 py-2 md:py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#00a884] mx-1"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={!newMessage.trim()}
-                  className="bg-[#00a884] hover:bg-[#00b894] text-white px-6 py-3 rounded-lg disabled:bg-[#2a3942] disabled:text-[#8696a0] transition font-medium"
+                  className="bg-[#00a884] hover:bg-[#00b894] text-white px-4 md:px-6 py-2 md:py-3 rounded-lg disabled:bg-[#2a3942] disabled:text-[#8696a0] transition font-medium text-sm md:text-base"
                 >
                   Send
                 </button>
@@ -566,21 +566,21 @@ const ProChat = () => {
           </>
         ) : (
           /* Welcome Screen */
-          <div className="flex-1 flex flex-col items-center justify-center bg-[#0b141a] text-center p-8">
-            <div className="max-w-md">
-              <div className="w-24 h-24 bg-[#00a884] rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg viewBox="0 0 24 24" width="48" height="48" fill="white">
+          <div className="flex-1 flex flex-col items-center justify-center bg-[#0b141a] text-center p-6 md:p-8">
+            <div className="max-w-md mx-4">
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-[#00a884] rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="white">
                   <path d="M17.5 12.5a5 5 0 1 1-10 0 5 5 0 0 1 10 0z"/>
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
                 </svg>
               </div>
-              <h1 className="text-2xl font-light text-white mb-4">ProChat</h1>
-              <p className="text-[#8696a0] text-sm leading-relaxed">
+              <h1 className="text-xl md:text-2xl font-light text-white mb-3 md:mb-4">ProChat</h1>
+              <p className="text-[#8696a0] text-xs md:text-sm leading-relaxed">
                 Send and receive messages instantly with real-time technology.
                 <br />
                 No more delays - chat happens in real-time!
               </p>
-              <div className="mt-6 flex items-center justify-center space-x-2 text-[#8696a0] text-sm">
+              <div className="mt-4 md:mt-6 flex items-center justify-center space-x-2 text-[#8696a0] text-xs md:text-sm">
                 <span>{socket ? "🟢 Real-time messaging enabled" : "🟡 Connecting to server..."}</span>
               </div>
             </div>
@@ -590,12 +590,12 @@ const ProChat = () => {
 
       {/* Alerts */}
       {message && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-[#00a884] text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm text-center">
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-[#00a884] text-white px-4 md:px-6 py-2 md:py-3 rounded-lg shadow-lg z-50 max-w-[90%] md:max-w-sm text-center text-sm md:text-base mx-4">
           {message}
         </div>
       )}
       {error && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm text-center">
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg shadow-lg z-50 max-w-[90%] md:max-w-sm text-center text-sm md:text-base mx-4">
           {error}
         </div>
       )}
