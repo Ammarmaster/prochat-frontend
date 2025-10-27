@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import io from "socket.io-client";
 
 const ProChat = () => {
   const [currentView, setCurrentView] = useState("chats");
@@ -13,13 +14,107 @@ const ProChat = () => {
   const [chats, setChats] = useState({});
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [unreadCounts, setUnreadCounts] = useState({});
+  const [socket, setSocket] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState(new Set());
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
 
   axios.defaults.withCredentials = true;
 
-  // ✅ Utility: Auto-hide alerts after 3s
+  // Initialize Socket.io connection
+  useEffect(() => {
+    const newSocket = io("https://prochat-api.onrender.com", {
+      withCredentials: true,
+      transports: ['websocket', 'polling']
+    });
+    
+    setSocket(newSocket);
+
+    // Socket event listeners
+    newSocket.on('connect', () => {
+      console.log('✅ Connected to server');
+    });
+
+    newSocket.on('disconnect', () => {
+      console.log('❌ Disconnected from server');
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('❌ Connection error:', error);
+    });
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
+
+  // Join user room when user is authenticated
+  useEffect(() => {
+    if (socket && currentUser) {
+      socket.emit('join', currentUser._id);
+      socket.emit('userOnline', currentUser._id);
+    }
+  }, [socket, currentUser]);
+
+  // Listen for real-time messages
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (messageData) => {
+      console.log('📨 New message received:', messageData);
+      
+      const message = {
+        id: messageData._id,
+        text: messageData.text,
+        sender: messageData.sender._id === currentUser?._id ? "me" : "friend",
+        time: new Date(messageData.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+
+      const chatUserId = messageData.sender._id === currentUser?._id 
+        ? messageData.recipient._id 
+        : messageData.sender._id;
+
+      setChats(prev => ({
+        ...prev,
+        [chatUserId]: [
+          ...(prev[chatUserId] || []),
+          message
+        ]
+      }));
+    };
+
+    const handleMessageError = (errorData) => {
+      setError(errorData.error);
+    };
+
+    const handleUserTyping = (data) => {
+      if (data.isTyping) {
+        setTypingUsers(prev => new Set(prev).add(data.userId));
+      } else {
+        setTypingUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(data.userId);
+          return newSet;
+        });
+      }
+    };
+
+    socket.on('newMessage', handleNewMessage);
+    socket.on('messageError', handleMessageError);
+    socket.on('userTyping', handleUserTyping);
+
+    return () => {
+      socket.off('newMessage', handleNewMessage);
+      socket.off('messageError', handleMessageError);
+      socket.off('userTyping', handleUserTyping);
+    };
+  }, [socket, currentUser]);
+
+  // Auto-hide alerts
   useEffect(() => {
     if (message || error) {
       const t = setTimeout(() => {
@@ -29,6 +124,48 @@ const ProChat = () => {
       return () => clearTimeout(t);
     }
   }, [message, error]);
+
+  // Typing indicators
+  useEffect(() => {
+    if (!socket || !selectedUser || !currentUser) return;
+
+    let typingTimeout;
+
+    if (newMessage.trim()) {
+      // Send typing start
+      socket.emit('typing', {
+        recipientId: selectedUser._id,
+        isTyping: true,
+        userId: currentUser._id
+      });
+
+      // Set timeout to send typing stop
+      typingTimeout = setTimeout(() => {
+        socket.emit('typing', {
+          recipientId: selectedUser._id,
+          isTyping: false,
+          userId: currentUser._id
+        });
+      }, 1000);
+    } else {
+      // Send typing stop immediately when message is empty
+      socket.emit('typing', {
+        recipientId: selectedUser._id,
+        isTyping: false,
+        userId: currentUser._id
+      });
+    }
+
+    return () => {
+      clearTimeout(typingTimeout);
+      // Ensure typing is stopped when component unmounts or dependencies change
+      socket.emit('typing', {
+        recipientId: selectedUser._id,
+        isTyping: false,
+        userId: currentUser._id
+      });
+    };
+  }, [newMessage, selectedUser, socket, currentUser]);
 
   const VerifiedBadge = ({ size = 16 }) => (
     <svg
@@ -118,7 +255,7 @@ const ProChat = () => {
       setMessage(`Added ${user.name} as a friend`);
       setSearchQuery("");
       setSearchResults([]);
-      loadFriends(); // 🔁 Refresh list
+      loadFriends();
     } catch {
       setError("Failed to add friend");
     }
@@ -142,8 +279,8 @@ const ProChat = () => {
     }
   };
 
-  // 💬 Messages
-  const loadMessages = async (friendId, markAsRead = false) => {
+  // 💬 Load initial messages (only once when chat starts)
+  const loadMessages = async (friendId) => {
     try {
       const res = await axios.get(
         `https://prochat-api.onrender.com/api/auth/messages/conversation/${friendId}`
@@ -158,7 +295,6 @@ const ProChat = () => {
         }),
       }));
       setChats((prev) => ({ ...prev, [friendId]: msgs }));
-      if (markAsRead) setUnreadCounts((p) => ({ ...p, [friendId]: 0 }));
     } catch {
       setError("Failed to load messages");
     }
@@ -167,43 +303,47 @@ const ProChat = () => {
   const startChat = async (user) => {
     setSelectedUser(user);
     setCurrentView("chat");
-    await loadMessages(user._id, true);
+    await loadMessages(user._id);
   };
 
+  // 🚀 INSTANT MESSAGING WITH SOCKETS
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
-    const tempId = Date.now();
-    const msgObj = {
-      id: tempId,
-      text: newMessage,
-      sender: "me",
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-    setChats((prev) => ({
-      ...prev,
-      [selectedUser._id]: [...(prev[selectedUser._id] || []), msgObj],
-    }));
-    const msgToSend = newMessage;
-    setNewMessage("");
+    if (!newMessage.trim() || !selectedUser || !socket || !currentUser) return;
+
     try {
-      await axios.post("https://prochat-api.onrender.com/api/auth/messages/send", {
+      // Emit message via socket for instant delivery
+      socket.emit('sendMessage', {
+        senderId: currentUser._id,
         recipientId: selectedUser._id,
-        text: msgToSend,
+        text: newMessage.trim()
       });
-      loadMessages(selectedUser._id, true);
-    } catch {
+
+      // Clear input immediately for better UX
+      setNewMessage("");
+
+      // Stop typing indicator
+      socket.emit('typing', {
+        recipientId: selectedUser._id,
+        isTyping: false,
+        userId: currentUser._id
+      });
+
+    } catch (err) {
       setError("Failed to send message");
     }
   };
 
+  // Auto-scroll to bottom
   useEffect(() => {
-    if (!selectedUser) return;
-    const intv = setInterval(() => loadMessages(selectedUser._id), 3000);
-    return () => clearInterval(intv);
-  }, [selectedUser]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chats, selectedUser]);
 
   const handleLogout = async () => {
+    if (socket) {
+      socket.emit('userOffline', currentUser?._id);
+      socket.disconnect();
+    }
     await axios.post("https://prochat-api.onrender.com/api/auth/user/logout");
     navigate("/login");
   };
@@ -211,9 +351,9 @@ const ProChat = () => {
   const getAvatar = (user) =>
     `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "")}&background=008069&color=ffffff&bold=true`;
 
-  // =======================
-  // 💬 UI STARTS HERE
-  // =======================
+  // Check if selected user is typing
+  const isSelectedUserTyping = selectedUser && typingUsers.has(selectedUser._id);
+
   return (
     <div className="flex h-screen bg-[#111b21] text-white font-sans overflow-hidden">
       {/* Sidebar */}
@@ -222,11 +362,13 @@ const ProChat = () => {
         <div className="bg-[#202c33] p-4 flex items-center justify-between border-b border-[#303d45]">
           <div className="flex items-center space-x-4">
             {currentUser && (
-              <img src={getAvatar(currentUser)} className="w-10 h-10 rounded-full" />
+              <img src={getAvatar(currentUser)} alt="Profile" className="w-10 h-10 rounded-full" />
             )}
             <div>
               <h2 className="font-semibold">{currentUser?.name}</h2>
-              <p className="text-xs text-[#8696a0]">Online</p>
+              <p className="text-xs text-[#8696a0]">
+                {socket ? "🟢 Online" : "🔴 Connecting..."}
+              </p>
             </div>
           </div>
           <button onClick={handleLogout} className="text-[#aebac1] hover:text-white">
@@ -253,7 +395,7 @@ const ProChat = () => {
             {searchResults.map((u) => (
               <div key={u._id} className="flex items-center justify-between p-3 hover:bg-[#2a3942] rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <img src={getAvatar(u)} className="w-10 h-10 rounded-full" />
+                  <img src={getAvatar(u)} alt={u.name} className="w-10 h-10 rounded-full" />
                   <div>
                     <p>{getDisplayName(u)}</p>
                     <p className="text-xs text-[#8696a0]">ID: {u.userId}</p>
@@ -279,7 +421,7 @@ const ProChat = () => {
               className="group flex items-center justify-between p-3 hover:bg-[#2a3942] cursor-pointer border-b border-[#222d34]"
             >
               <div className="flex items-center space-x-3">
-                <img src={getAvatar(user)} className="w-12 h-12 rounded-full" />
+                <img src={getAvatar(user)} alt={user.name} className="w-12 h-12 rounded-full" />
                 <div>
                   <h3 className="font-medium">{getDisplayName(user)}</h3>
                   <p className="text-xs text-[#8696a0]">ID: {user.userId}</p>
@@ -304,7 +446,147 @@ const ProChat = () => {
       </div>
 
       {/* Chat Area */}
-      {/* ... (same as before) ... */}
+      <div className={`${currentView === "chats" ? "hidden md:flex" : "flex"} flex-1 flex-col bg-[#0b141a]`}>
+        {selectedUser ? (
+          <>
+            {/* Chat Header */}
+            <div className="bg-[#202c33] px-4 py-3 flex items-center justify-between border-b border-[#303d45]">
+              <div className="flex items-center space-x-4">
+                {currentView === "chat" && (
+                  <button
+                    onClick={() => {
+                      setCurrentView("chats");
+                      setSelectedUser(null);
+                    }}
+                    className="md:hidden text-[#8696a0] hover:text-white"
+                  >
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                      <path d="M19 11H7.83l4.88-4.88c.39-.39.39-1.03 0-1.42-.39-.39-1.02-.39-1.41 0l-6.59 6.59c-.39.39-.39 1.02 0 1.41l6.59 6.59c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L7.83 13H19c.55 0 1-.45 1-1s-.45-1-1-1z"/>
+                    </svg>
+                  </button>
+                )}
+                <img
+                  src={getAvatar(selectedUser)}
+                  alt={selectedUser.name}
+                  className="w-10 h-10 rounded-full"
+                />
+                <div>
+                  <h2 className="font-semibold text-white">
+                    {getDisplayName(selectedUser)}
+                  </h2>
+                  <p className="text-xs text-[#8696a0]">
+                    {isSelectedUserTyping ? "✍️ Typing..." : "🟢 Online"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-6 text-[#8696a0]">
+                <button className="hover:text-white transition">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                  </svg>
+                </button>
+                <button className="hover:text-white transition">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 11c-.55 0-1-.45-1-1V8c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1 4h-2v-2h2v2z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto bg-[#0b141a] p-4 space-y-2">
+              {(chats[selectedUser._id] || []).map((m) => (
+                <div
+                  key={m.id}
+                  className={`flex ${m.sender === "me" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[70%] rounded-lg px-4 py-2 shadow-lg ${
+                      m.sender === "me"
+                        ? "bg-[#005c4b] text-white rounded-tr-none"
+                        : "bg-[#202c33] text-white rounded-tl-none"
+                    }`}
+                  >
+                    <p className="text-sm leading-relaxed">{m.text}</p>
+                    <p className={`text-xs mt-1 ${m.sender === "me" ? "text-[#8696a0] text-right" : "text-[#8696a0]"}`}>
+                      {m.time}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              
+              {/* Typing Indicator */}
+              {isSelectedUserTyping && (
+                <div className="flex justify-start">
+                  <div className="bg-[#202c33] text-white rounded-tl-none rounded-lg px-4 py-3 shadow-lg">
+                    <div className="flex space-x-1 items-center">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <span className="text-xs text-[#8696a0] ml-2">typing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Message Input */}
+            <div className="bg-[#202c33] p-3">
+              <form onSubmit={sendMessage} className="flex items-center space-x-3">
+                <button type="button" className="text-[#8696a0] hover:text-white p-2">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M11.999 14.942c2.001 0 3.531-1.53 3.531-3.531V4.35c0-2.001-1.53-3.531-3.531-3.531S8.469 2.35 8.469 4.35v7.061c0 2.001 1.53 3.531 3.53 3.531zm6.238-3.53c0 3.531-2.942 6.002-6.237 6.002s-6.237-2.471-6.237-6.002H3.761c0 4.001 3.178 7.297 7.061 7.885v3.884h2.354v-3.884c3.884-.588 7.061-3.884 7.061-7.885h-2z"/>
+                  </svg>
+                </button>
+                <button type="button" className="text-[#8696a0] hover:text-white p-2">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M11.999 22c5.523 0 10-4.477 10-10s-4.477-10-10-10-10 4.477-10 10 4.477 10 10 10zm0-1.5a8.5 8.5 0 1 1 0-17 8.5 8.5 0 0 1 0 17zm-3.5-7a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm3.5 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm3.5 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                  </svg>
+                </button>
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message"
+                    className="w-full bg-[#2a3942] text-white placeholder-[#8696a0] rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#00a884]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim()}
+                  className="bg-[#00a884] hover:bg-[#00b894] text-white px-6 py-3 rounded-lg disabled:bg-[#2a3942] disabled:text-[#8696a0] transition font-medium"
+                >
+                  Send
+                </button>
+              </form>
+            </div>
+          </>
+        ) : (
+          /* Welcome Screen */
+          <div className="flex-1 flex flex-col items-center justify-center bg-[#0b141a] text-center p-8">
+            <div className="max-w-md">
+              <div className="w-24 h-24 bg-[#00a884] rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="white">
+                  <path d="M17.5 12.5a5 5 0 1 1-10 0 5 5 0 0 1 10 0z"/>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                </svg>
+              </div>
+              <h1 className="text-2xl font-light text-white mb-4">ProChat</h1>
+              <p className="text-[#8696a0] text-sm leading-relaxed">
+                Send and receive messages instantly with real-time technology.
+                <br />
+                No more delays - chat happens in real-time!
+              </p>
+              <div className="mt-6 flex items-center justify-center space-x-2 text-[#8696a0] text-sm">
+                <span>{socket ? "🟢 Real-time messaging enabled" : "🟡 Connecting to server..."}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Alerts */}
       {message && (
